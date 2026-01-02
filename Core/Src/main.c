@@ -104,7 +104,6 @@ int main(void)
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
-  /* Simple blinky: toggle user LED (PA1) every 500 ms */
   HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
   HAL_Delay(500);
   }
