@@ -1,0 +1,8 @@
+# .bazelrc
+# 1. Use the ARM platform defined by the toolchain module
+build --platforms=@toolchains_arm_gnu//platforms:arm_none_eabi
+
+# 2. Set the hardware-specific flags using the correct Starlark labels
+build --@toolchains_arm_gnu//config:cpu=cortex-m4
+build --@toolchains_arm_gnu//config:fpu=fpv4-sp-d16
+build --@toolchains_arm_gnu//config:float-abi=hard

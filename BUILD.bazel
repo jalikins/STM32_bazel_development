@@ -1,62 +1,50 @@
-# This defines the "platform" we are building for
-platform(
-    name = "arm_m4_platform",
-    constraint_values = [
-        "@platforms//cpu:armv7e-m", # <-- CORRECTED: was armv7em
-        "@platforms//os:none",      # 'none' means bare-metal
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+
+# 1. Define the HAL library with recursive header search
+cc_library(
+    name = "hal",
+    srcs = glob(["Drivers/STM32G4xx_HAL_Driver/Src/*.c"]),
+    hdrs = glob([
+        "Drivers/STM32G4xx_HAL_Driver/Inc/**/*.h", # Recursive search for Legacy/
+        "Drivers/CMSIS/Device/ST/STM32G4xx/Include/*.h",
+        "Drivers/CMSIS/Include/*.h",
+        "Core/Inc/*.h",
+    ]),
+    includes = [
+        "Drivers/STM32G4xx_HAL_Driver/Inc",
+        "Drivers/CMSIS/Device/ST/STM32G4xx/Include",
+        "Drivers/CMSIS/Include",
+        "Core/Inc",
     ],
+    defines = ["USE_HAL_DRIVER", "STM32G441xx"],
 )
 
-# This defines your final executable.
+# 2. Define the binary
 cc_binary(
-    name = "firmware.elf",
-    
-    # Add your application sources AND the linker script here
+    name = "blinky.elf",
     srcs = [
         "Core/Src/main.c",
         "Core/Src/stm32g4xx_hal_msp.c",
         "Core/Src/stm32g4xx_it.c",
+        "Core/Src/syscalls.c",
+        "Core/Src/sysmem.c",
         "Core/Src/system_stm32g4xx.c",
         "startup_stm32g441xx.s",
-        "STM32G441XX_FLASH.ld",
     ],
-    
-    # Your application's dependency: the HAL driver library
-    deps = [
-        "//cmake/stm32cubemx:hal_drivers",
-    ],
-    
-    # Add compiler flags for your application code
-    copts = [
-        "-mcpu=cortex-m4",
-        "-mthumb",
-        "-mfloat-abi=hard",
-        "-mfpu=fpv4-sp-d16",
-    ],
-    
-    # Add linker flags to use the linker script
     linkopts = [
-        "-T $(location STM32G441XX_FLASH.ld)",
-        "-Wl,-Map=firmware.map",
+        "-T $(location //:STM32G441XX_FLASH.ld)",
+        "-Wl,--gc-sections",
+        "--specs=nosys.specs",
+    ],
+    deps = [
+        ":hal",
+        "//:STM32G441XX_FLASH.ld",
     ],
 )
 
-# --- CORRECTLY NAMED RULES ---
-
-# This rule runs objcopy to create the .bin file from the .elf
-genrule(
-    name = "firmware_bin_gen",  # <-- Rule name is unique
-    srcs = [":firmware.elf"],
-    outs = ["firmware.bin"],   # <-- Output file name
-    cmd = "$(execpath @arm_none_eabi//:objcopy) -O binary $< $@",
-    tools = ["@arm_none_eabi//:objcopy"],
-)
-
-# This rule runs objcopy to create the .hex file from the .elf
-genrule(
-    name = "firmware_hex_gen",  # <-- Rule name is unique
-    srcs = [":firmware.elf"],
-    outs = ["firmware.hex"],   # <-- Output file name
-    cmd = "$(execpath @arm_none_eabi//:objcopy) -O ihex $< $@",
-    tools = ["@arm_none_eabi//:objcopy"],
+# 3. Flash rule
+sh_binary(
+    name = "flash",
+    srcs = ["flash.sh"],
+    data = [":blinky.elf"],
 )
