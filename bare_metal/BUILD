@@ -1,6 +1,6 @@
 load("//third_party:stm32cubeg4.bzl", "hal_library")
 
-# This tells Bazel: "We are building for a generic ARMv7E-M device (Cortex-M7) with no OS."
+
 platform(
     name = "stm32_platform",
     constraint_values = [
@@ -12,12 +12,12 @@ platform(
 cc_binary(
     name = "main.elf",
     srcs = [
-        "interrupts.cc",
-        "main.cc",
+        "interrupts.c", 
+        "main.c",       
         "startup.c",
     ],
     linkopts = [
-        "-T $(execpath :stm32g441.ld)",
+        "-T $(execpath :stm32g441.ld)", 
         "-Wl,--no-warn-rwx-segments",
     ],
     target_compatible_with = [
@@ -27,7 +27,7 @@ cc_binary(
     visibility = ["//visibility:public"],
     deps = [
         ":hal",
-        ":stm32g441.ld",
+        ":stm32g441.ld", 
     ],
 )
 
