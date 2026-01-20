@@ -23,6 +23,12 @@ filegroup(
     srcs = ["stm32g441.ld"],
 )
 
-exports_files(["flash.sh"])
+platform(
+    name = "stm32_platform",
+    constraint_values = [
+        "@platforms//cpu:armv7e-m", # Cortex-M4/M7
+        "@platforms//os:none",      # Bare metal
+    ],
+)
 
 exports_files(["flash.sh", "debug.sh"])
