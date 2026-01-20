@@ -11,8 +11,9 @@ git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "g
 git_repository(
     name = "stm32cubeg4",
     remote = "https://github.com/STMicroelectronics/STM32CubeG4.git",
-    tag = "v1.6.1",  # This tag matches the version you wanted
-    recursive_init_submodules = True, # <--- THIS IS THE KEY FIX
+    commit = "1e6984e6cdeb9e5c01f5badbfd18e5cf4345d02f", # to get bazel to shut up
+    #tag = "v1.6.1",
+    recursive_init_submodules = True, # for certain stm32 cube libraries they use submodules
     build_file = "//third_party:stm32cubeg4.BUILD",
 )
 # c8ede3e61aa2d47696e42edead53bcf3d8f3f2ae7e7a180ce001d19bbc397878
