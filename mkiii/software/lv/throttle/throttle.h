@@ -31,7 +31,7 @@ void ErrorHandler(void) { // this will only happen if error on board
   }
 }
 
-void SystemClockConfig(void) {
+void SystemClockConfig(void) { // if you are messing with this please consult someone
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
@@ -61,6 +61,10 @@ void SystemClockConfig(void) {
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
     ErrorHandler();
   }
+}
+
+void SysTick_Handler(void) {
+  HAL_IncTick();
 }
 
 

@@ -22,3 +22,7 @@ filegroup(
     name = "linker_script",
     srcs = ["stm32g441.ld"],
 )
+
+exports_files(["flash.sh"])
+
+exports_files(["flash.sh", "debug.sh"])

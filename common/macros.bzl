@@ -24,3 +24,23 @@ def stm32_firmware(name, srcs = [], deps = []):
             # "-Werror",  # Optional: Fails build on warnings
         ],
     )
+
+    flash_target_name = name.replace(".elf", "") + "_flash"
+    
+    native.sh_binary(
+        name = flash_target_name,
+        srcs = ["//common:flash.sh"],
+        # Automatically pass the location of the compiled ELF to the script
+        args = ["$(location :%s)" % name],
+        # Tell Bazel that this script needs the ELF file to exist
+        data = [":" + name],
+    )
+
+    
+    debug_target_name = name.replace(".elf", "") + "_debug"
+    native.sh_binary(
+        name = debug_target_name,
+        srcs = ["//common:debug.sh"],
+        args = ["$(location :%s)" % name],
+        data = [":" + name],
+    )
