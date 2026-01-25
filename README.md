@@ -32,7 +32,7 @@ using OpenOCD's debugging tool run:
 ```Shell
 bazel run -c dbg --config=m4 //mkiii/software/lv/throttle:throttle_debug
 ```
-
+v
 ## Basic debugging with OpenOCD
 
 OpenOCD and GDB are the primary tools and can be used together for debugging STM32 applications. OpenOCD provides the interface to the hardware, while GDB is used to inspect and control the execution of the program.
