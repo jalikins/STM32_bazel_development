@@ -2,11 +2,11 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "stm32cubeg4",
-    # 1. Compile the external HAL sources + your local system clock
+    # Compile the external HAL sources + local system clock
     srcs = glob(["system_core_clock.c"]) + [
         "@stm32cubeg4//:hal_source",
     ],
-    # 2. Link the headers and your config
+    # Link the headers and config
     deps = [
         "//common:hal_config",          # Points to common/stm32g4xx_hal_conf.h
         "@stm32cubeg4//:hal_header_lib",
