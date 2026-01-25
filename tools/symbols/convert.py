@@ -7,7 +7,6 @@ import re
 def cli():
     pass
 
-# --- HELPER: ROBUST BLOCK EXTRACTOR ---
 def find_closing_paren(text, start_index):
     """Finds the index of the matching closing parenthesis."""
     depth = 0
@@ -35,7 +34,7 @@ def find_closing_paren(text, start_index):
                     return i + 1 # Return index AFTER the paren
     return -1
 
-# --- COMMAND: IMPLODE (Files -> Library) ---
+
 @click.command()
 @click.option("-s", "--source", prompt="path to symbol files", help="Symbol files directory", type=click.Path(file_okay=False, dir_okay=True, exists=True))
 @click.option("-o", "--out", prompt="path to symbol library", help="Symbol library", type=click.File(mode="w"))
@@ -52,7 +51,7 @@ def symbols2library(source, out):
     for symbol in symbols + derived_symbols:
         with open(symbol, "r") as f:
             for line in f:
-                # We enforce 2-space indentation for the master file
+                # enforce 2-space indentation for the main file
                 out.write("  " + line)
                 # Ensure the file ends with a newline
                 if not line.endswith("\n"):
@@ -60,7 +59,7 @@ def symbols2library(source, out):
                 
     out.write(")\n")
 
-# --- COMMAND: EXPLODE (Library -> Files) ---
+
 @click.command()
 @click.option("-s", "--source", prompt="path to symbol library", help="Symbol library", type=click.File("r"))
 @click.option("-o", "--out", prompt="path to symbol files", help="Symbol files directory", type=click.Path(file_okay=False, dir_okay=True, exists=False))
@@ -75,35 +74,32 @@ def library2symbols(source, out):
     print(f"Scanning {len(content)} bytes...")
 
     while True:
-        # 1. Find the next start of a symbol
-        # We look for the token '(symbol'
+
+        # look for the token '(symbol'
         start = content.find("(symbol", cursor)
         if start == -1:
             break
             
-        # 2. Check if this is a "real" symbol (not inside a string)
-        # Quick heuristic: Previous char must be whitespace or '('
+        # Check if this is a "real" symbol (not inside a string)
         if start > 0 and content[start-1] not in " \t\n\r(":
             cursor = start + 1
             continue
 
-        # 3. Find the end of this block
+        # Find the end of this block
         end = find_closing_paren(content, start)
         if end == -1:
             print(f"Error: Unclosed symbol starting at {start}")
             break
             
         block = content[start:end]
-        
-        # 4. Extract Name
+
+        # Extract Name
         match = re.search(r'\(symbol\s+"([^"]+)"', block)
         if match:
             name = match.group(1)
             is_derived = "(extends" in block
             
-            # 5. Clean Indentation (Dedent)
-            # Find the indentation of the first line (e.g. "\t")
-            # And strip that from every line so the small file is flush-left.
+           
             prefix = ""
             # Look backwards from 'start' to find the newline
             line_start = content.rfind('\n', 0, start)
@@ -118,7 +114,7 @@ def library2symbols(source, out):
                     clean_lines.append(line)
             clean_block = "\n".join(clean_lines)
 
-            # 6. Save File
+            # Save File
             extension = ".derived-symbol" if is_derived else ".symbol"
             safe_name = name.replace("/", "_").replace(":", "_")
             file_name = os.path.join(out, safe_name + extension)

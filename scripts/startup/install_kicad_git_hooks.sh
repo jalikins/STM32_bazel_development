@@ -1,81 +1,111 @@
 #!/bin/bash
-# requires bazel and python
 
-# absolute path of repository root
-ROOT=$(git rev-parse --show-toplevel)
+# Define the root of the repo
+REPO_ROOT=$(git rev-parse --show-toplevel)
+HOOKS_DIR="$REPO_ROOT/.git/hooks"
 
-# install virtual pre-checkout hook
-# the pre-checkout hook will prevent checkout if the symbols haven't been commited
-cat << EOF > ${ROOT}/.git/hooks/pre-checkout
+echo "Installing Git Hooks (KiCad + Git LFS)..."
+
+install_git_lfs(){
+    if ! command -v git-lfs >/dev/null 2>&1; then
+        
+        if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+            # Debian/Ubuntu
+            if command -v apt-get >/dev/null 2>&1; then
+                sudo apt-get update && sudo apt-get install -y git-lfs
+            # Fedora/RHEL
+            elif command -v dnf >/dev/null 2>&1; then
+                sudo dnf install -y git-lfs
+            # Arch Linux
+            elif command -v pacman >/dev/null 2>&1; then
+                sudo pacman -S --noconfirm git-lfs
+            else
+                echo "Error: Package manager not found."
+                exit 1
+            fi
+        elif [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS
+            if command -v brew >/dev/null 2>&1; then
+                brew install git-lfs
+            else
+                echo "Homebrew not found. Please install git-lfs manually."
+                exit 1
+            fi
+        else
+            echo "Unsupported OS type: $OSTYPE"
+            exit 1
+        fi
+        
+        # Initialize LFS after install
+        git lfs install
+        echo "Git LFS installed."
+    else
+        echo "why you got Git LFS already???"
+    fi
+}
+
+# Run the function immediately
+install_git_lfs
+
+# This hook needs to:
+# A. Implode the KiCad symbols
+# B. Fetch LFS files (so 3D models appear)
+cat > "$HOOKS_DIR/post-checkout" <<EOF
 #!/bin/bash
-# parameters:
-# 1: previous HEAD
-# 2: new HEAD
-# 3: new HEAD is branch
+# Implode symbols 
+bazel run //tools/symbols:convert -- symbols2library --source "$REPO_ROOT/parts/schematic/oem" --out "$REPO_ROOT/parts/schematic/oem.kicad_sym"
 
-# check for SKIP_PRE_CHECKOUT flag
-if [ ! -z \$SKIP_PRE_CHECKOUT ] && \$SKIP_PRE_CHECKOUT
-then
-    exit 0
-fi
-
-echo "Running pre-checkout hook. To skip this step run SKIP_PRE_CHECKOUT=true git checkout..."
-# set PRE_CHECKOUT flag
-export PRE_CHECKOUT=true
-
-# switch previous HEAD
-git checkout \$1 --quiet
-# ensure any symbol changes are up to date
-if test -f ${ROOT}/parts/schematic/oem.kicad_sym; then
-    rm -rf ${ROOT}/parts/schematic/oem
-    bazel run //tools/symbols:convert -- library2symbols --source ${ROOT}/parts/schematic/oem.kicad_sym --out ${ROOT}/parts/schematic/oem
-fi
-# switch back new HEAD
-if [ "\$3" -eq "1" ];
-then
-    # switch to previous branch
-    git switch --quiet -
-else
-    # switch to previous commit
-    git checkout \$2 --quiet
+# Fetch large files
+if command -v git-lfs >/dev/null 2>&1; then
+    git lfs post-checkout "\$@"
 fi
 EOF
+chmod +x "$HOOKS_DIR/post-checkout"
 
-# install post-checkout hook
-# the post-checkout hook generates a kicad_sym file from the symbols in parts/schematic/oem
-cat << EOF > ${ROOT}/.git/hooks/post-checkout
+
+# Same logic as post-checkout
+cat > "$HOOKS_DIR/post-merge" <<EOF
 #!/bin/bash
-# parameters:
-# 1: previous HEAD
-# 2: new HEAD
-# 3: new HEAD is branch
+# Implode symbols
+bazel run //tools/symbols:convert -- symbols2library --source "$REPO_ROOT/parts/schematic/oem" --out "$REPO_ROOT/parts/schematic/oem.kicad_sym"
 
-# check for PRE_CHECKOUT flag
-if [ ! -z \$PRE_CHECKOUT ] && \$PRE_CHECKOUT
-then
-    exit 0
+# Fetch large files
+if command -v git-lfs >/dev/null 2>&1; then
+    git lfs post-merge "\$@"
 fi
-
-# run pre-checkout hook and pass previous and new HEAD
-. .git/hooks/pre-checkout \$1 \$2 \$3
-
-bazel run //tools/symbols:convert -- symbols2library --source ${ROOT}/parts/schematic/oem --out ${ROOT}/parts/schematic/oem.kicad_sym
 EOF
+chmod +x "$HOOKS_DIR/post-merge"
 
-# install pre-commit hook
-# the pre-commit hook generates files for parts/schematic/oem from a kicad_sym file
 
-cat << EOF > ${ROOT}/.git/hooks/pre-commit
+# This explodes the library so we track small files
+cat > "$HOOKS_DIR/pre-commit" <<EOF
 #!/bin/bash
-if test -f ${ROOT}/parts/schematic/oem.kicad_sym; then
-    rm -rf ${ROOT}/parts/schematic/oem
-    bazel run //tools/symbols:convert -- library2symbols --source ${ROOT}/parts/schematic/oem.kicad_sym --out ${ROOT}/parts/schematic/oem
-fi
-git add ${ROOT}/parts/schematic/oem
+# Explode symbols
+bazel run //tools/symbols:convert -- library2symbols --source "$REPO_ROOT/parts/schematic/oem.kicad_sym" --out "$REPO_ROOT/parts/schematic/oem"
+
+# Add the exploded 
+git add "$REPO_ROOT/parts/schematic/oem"
 EOF
+chmod +x "$HOOKS_DIR/pre-commit"
 
-# make hooks executable
-chmod +x ${ROOT}/.git/hooks/pre-checkout
-chmod +x ${ROOT}/.git/hooks/post-checkout
-chmod +x ${ROOT}/.git/hooks/pre-commit
 
+# Ensures the single file is rebuilt locally so you can keep working
+cat > "$HOOKS_DIR/post-commit" <<EOF
+#!/bin/bash
+# Implode symbols
+bazel run //tools/symbols:convert -- symbols2library --source "$REPO_ROOT/parts/schematic/oem" --out "$REPO_ROOT/parts/schematic/oem.kicad_sym"
+EOF
+chmod +x "$HOOKS_DIR/post-commit"
+
+
+# LFS needs this to upload large files
+cat > "$HOOKS_DIR/pre-push" <<EOF
+#!/bin/bash
+if command -v git-lfs >/dev/null 2>&1; then
+    git lfs pre-push "\$@"
+fi
+EOF
+chmod +x "$HOOKS_DIR/pre-push"
+
+
+echo "Hooks installed."

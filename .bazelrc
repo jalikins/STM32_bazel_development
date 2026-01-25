@@ -9,27 +9,26 @@ build --copt="-Werror"
 build --copt="-fdiagnostics-color"
 build --copt="-fmax-errors=5"
 
-# --- M4 CONFIG (BARE METAL) ---
-# PLATFORM: Points to the local platform defined in bare_metal/BUILD
+
+# Points to the local platform defined in bare_metal/BUILD
 build:m4 --platforms=//common:stm32_platform
 
-# ARCHITECTURE: Force Cortex-M4 (Thumb-2) with Hardware Floating Point
+# Force Cortex-M4 with Hardware Floating Point
 build:m4 --copt=-mthumb
 build:m4 --copt=-mcpu=cortex-m4 # main diff from M7
 build:m4 --copt=-mfloat-abi=hard
 build:m4 --copt=-mfpu=fpv4-sp-d16 # main diff from M7
 
-# LINKER: Must match the compiler architecture flags!
+# Must match the compiler architecture flags
 build:m4 --linkopt=-mthumb
 build:m4 --linkopt=-mcpu=cortex-m4 # main diff from M7
 build:m4 --linkopt=-mfloat-abi=hard
 build:m4 --linkopt=-mfpu=fpv4-sp-d16 # main diff from M7
 
-# STARTUP: Don't link standard crt0.o (we use startup.c)
+# we use startup.c
 build:m4 --linkopt="-nostartfiles"
 
-# SPECS: Use nosys.specs to provide empty stubs for _exit, _sbrk, etc.
-#    (Switch back to nano.specs ONLY after you add a syscalls.c file)
+
 build:m4 --linkopt=--specs=nosys.specs
 
 # DEBUG & EXCEPTIONS
@@ -43,30 +42,29 @@ build:m4 --cxxopt="-fno-rtti"
 
 
 
-# --- M7 CONFIG (BARE METAL) ---
-# 1. PLATFORM: Points to the local platform defined in bare_metal/BUILD
+
+# Points to the local platform defined in bare_metal/BUILD
 build:m7 --platforms=//bare_metal:stm32_platform
 
-# 2. ARCHITECTURE: Force Cortex-M7 (Thumb-2) with Hardware Floating Point
+# Force Cortex-M7 (Thumb-2) with Hardware Floating Point
 build:m7 --copt=-mthumb
 build:m7 --copt=-mcpu=cortex-m7
 build:m7 --copt=-mfloat-abi=hard
 build:m7 --copt=-mfpu=fpv5-sp-d16
 
-# 3. LINKER: Must match the compiler architecture flags!
+# Must match the compiler architecture flags!
 build:m7 --linkopt=-mthumb
 build:m7 --linkopt=-mcpu=cortex-m7
 build:m7 --linkopt=-mfloat-abi=hard
 build:m7 --linkopt=-mfpu=fpv5-sp-d16
 
-# 4. STARTUP: Don't link standard crt0.o (we use startup.c)
+# we use startup.c
 build:m7 --linkopt="-nostartfiles"
 
-# 5. SPECS: Use nosys.specs to provide empty stubs for _exit, _sbrk, etc.
-#    (Switch back to nano.specs ONLY after you add a syscalls.c file)
+
 build:m7 --linkopt=--specs=nosys.specs
 
-# 6. DEBUG & EXCEPTIONS
+# DEBUG & EXCEPTIONS
 build:m7 --copt="-g"
 # Disabling exceptions saves space and avoids linker errors with __exidx
 build:m7 --copt="-fno-exceptions"
