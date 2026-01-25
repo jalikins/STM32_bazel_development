@@ -1,3 +1,16 @@
+load("@rules_python//python:pip.bzl", "compile_pip_requirements")
+
+compile_pip_requirements(
+    name = "requirements",
+    src = "requirements.txt",
+    requirements_txt = "requirements_lock.txt",
+)
+
+
+
+
+
+
 # load("@bazel_lint//bazel:buildifier.bzl", "buildifier")
 # load("@bazel_lint//cpp:clang.bzl", "clang_format")
 # load("@bazel_lint//python:pylint.bzl", "pylint")
